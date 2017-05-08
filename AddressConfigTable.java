@@ -40,7 +40,8 @@ public class AddressConfigTable {
         int lockIndex = address % locks.length;
 //        System.out.println("inserting " + address + " " +  start + " " + end + " " + addressAllowed);
         locks[lockIndex].writeLock().lock();
-        configs[address].root.insert(start, end, addressAllowed);
+        // it is [start, end) therefore we do end-1
+        configs[address].root.insert(start, end - 1, addressAllowed);
         configs[address].setPersonaNonGrata(personaNonGrata);
         locks[lockIndex].writeLock().unlock();
     }
