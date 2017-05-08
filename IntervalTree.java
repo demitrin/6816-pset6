@@ -1,15 +1,19 @@
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 
 public class IntervalTree {
     private volatile TreeNode root;
+    private volatile HashMap<Integer, Boolean> cache;
 
     public IntervalTree() {
         root = null;
+        cache = new HashMap<>(1 << 10);
     }
 
     public void insert(int start, int end, boolean acceptingInterval) {
         TreeNode newNode = new TreeNode(new Interval(start, end, acceptingInterval), end);
+        cache = new HashMap<>(1 << 10);
         if (root == null) {
             root = newNode;
         } else {
@@ -19,6 +23,10 @@ public class IntervalTree {
 
     public boolean isAddressAllowed(int address) {
         if (root != null) {
+            if (cache.containsKey(address)) {
+                return cache.get(address);
+            }
+
             List<Interval> results = new ArrayList<>();
             root.findIntervalsContainingValue(address, results);
             // find the latest interval and return its boolean
@@ -31,7 +39,9 @@ public class IntervalTree {
                 }
             }
 
-            return latestInterval == null || latestInterval.isAcceptingInterval();
+            boolean result = latestInterval == null || latestInterval.isAcceptingInterval();
+            cache.put(address, result);
+            return result;
         }
         return true;
     }

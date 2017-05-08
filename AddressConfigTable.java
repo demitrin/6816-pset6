@@ -3,7 +3,6 @@ import java.util.concurrent.locks.*;
 public class AddressConfigTable {
     private final ReadWriteLock[] locks;
     private final AddressConfig[] configs;
-
     public AddressConfigTable(int logSize) {
         // it is initialized to the max size. no need to resize
         configs = new AddressConfig[1 << logSize];
@@ -49,7 +48,6 @@ public class AddressConfigTable {
     private class AddressConfig {
         private volatile boolean personaNonGrata = false;
         private final IntervalTree root;
-
         private AddressConfig() {
             root = new IntervalTree();
         }
