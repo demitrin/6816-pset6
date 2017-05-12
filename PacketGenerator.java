@@ -12,7 +12,6 @@ class PacketWorker implements Runnable {
 
     public PacketWorker(PaddedPrimitiveNonVolatile<Boolean> done, int workerNum,
                                     WaitFreeQueue<Packet>[] queues, AddressConfigTable table) {
-
         this.table = table;
         this.done = done;
         this.queues = queues;
@@ -32,10 +31,11 @@ class PacketWorker implements Runnable {
                         fingerprint += Fingerprint.getFingerprint(pkt.body.iterations, pkt.body.seed);
                     }
                 }
-            } catch (EmptyException e) { }
+            } catch (EmptyException e) {}
         }
     }
 }
+
 
 class Dispatcher implements Runnable {
     PaddedPrimitiveNonVolatile<Boolean> done;
@@ -70,6 +70,7 @@ class Dispatcher implements Runnable {
                             totalPackets++;
                             break;
                         } catch (FullException e) {
+                            System.out.println("FULL QUEUE");
                         }
                     }
                 }
@@ -121,7 +122,7 @@ class PacketGeneratorApp {
         for (int i = 0; i < queues.length; i++) {
             // we can have 256 packets in the flight at once
             // split them evenly across all workers
-            queues[i] = new WaitFreeQueue<>(256 / numWorkers);
+            queues[i] = new WaitFreeQueue<>((256 - numWorkers) / numWorkers);
         }
 
         // allocate and initialize locks and any signals used to marshal threads (eg. done signals)

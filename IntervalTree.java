@@ -8,12 +8,14 @@ public class IntervalTree {
 
     public IntervalTree() {
         root = null;
-        cache = new HashMap<>(1 << 10);
+        // with capacity to a power of 2 + 1 and loadFactor 1 we
+        // disable resizing which would cause race conditions
+        cache = new HashMap<>(1 << 10 + 1 , 1);
     }
 
     public void insert(int start, int end, boolean acceptingInterval) {
         TreeNode newNode = new TreeNode(new Interval(start, end, acceptingInterval), end);
-        cache = new HashMap<>(1 << 10);
+        cache.clear();
         if (root == null) {
             root = newNode;
         } else {
