@@ -70,7 +70,6 @@ class Dispatcher implements Runnable {
                             totalPackets++;
                             break;
                         } catch (FullException e) {
-                            System.out.println("FULL QUEUE");
                         }
                     }
                 }
