@@ -92,7 +92,6 @@ class PacketGeneratorApp {
         final double configFraction = Double.parseDouble(args[7]);
         final double pngFraction = Double.parseDouble(args[8]);
         final double acceptingFraction = Double.parseDouble(args[9]);
-        final int numWorkers = Integer.parseInt(args[10]);
         final int numMilliseconds = Integer.parseInt(args[11]);
         PacketGenerator gen = new PacketGenerator(
                 numAddressesLog,
@@ -106,79 +105,81 @@ class PacketGeneratorApp {
                 pngFraction,
                 acceptingFraction
         );
-        AddressConfigTable table = new AddressConfigTable(numAddressesLog);
-        // initialize the table with config packets
-        double a = Math.pow(Math.pow(2, numAddressesLog), 3. / 2);
-        Packet pkt;
-        for (int i = 0; i < a; i++) {
-            pkt = gen.getConfigPacket();
-            table.insert(pkt.config.address, pkt.config.addressBegin,
-                    pkt.config.addressEnd, pkt.config.acceptingRange, pkt.config.personaNonGrata);
-        }
-        System.out.println("Finished the initial config");
-        // initialize queues for workers
-        WaitFreeQueue<Packet>[] queues = new WaitFreeQueue[numWorkers];
-        for (int i = 0; i < queues.length; i++) {
-            // we can have 256 packets in the flight at once
-            // split them evenly across all workers
-            queues[i] = new WaitFreeQueue<>((256 - numWorkers) / numWorkers);
-        }
-
-        // allocate and initialize locks and any signals used to marshal threads (eg. done signals)
-        PaddedPrimitiveNonVolatile<Boolean> done = new PaddedPrimitiveNonVolatile<>(false);
-        //
-        // allocate and inialize Dispatcher and Worker threads
-        Dispatcher dispatchData = new Dispatcher(done, gen, numWorkers, queues);
-        Thread dispatchThread = new Thread(dispatchData);
-
-        Thread workerThreads[] = new Thread[queues.length];
-        for (int i = 0; i < workerThreads.length; i++) {
-            PacketWorker workerData = new PacketWorker(done, i, queues, table);
-            workerThreads[i] = new Thread(workerData);
-        }
-
-        // call .start() on your Workers
-        for (Thread workerThread : workerThreads)
-            workerThread.start();
-
-        StopWatch timer = new StopWatch();
-        // start the timer
-        timer.startTimer();
-        // call .start() on your Dispatcher
-        dispatchThread.start();
-
-        try {
-            Thread.sleep(numMilliseconds);
-        } catch (InterruptedException ignore) {}
-
-        // assert signals to stop Dispatcher
-        // call .join() on Dispatcher
-        done.value = true;
-        try {
-            dispatchThread.join();
-        } catch (InterruptedException e) {
-            System.out.println("broke in dispatcher join");
-        }
-
-        // assert signals to stop Workers - they are responsible for leaving
-        // the queues empty
-        //
-        // call .join() for each Worker
-        //
-        try {
-            for (Thread workerThread : workerThreads) {
-                workerThread.join();
+        final int[] numWorkersArr = {1, 2, 4, 8};
+        for (int numWorkers : numWorkersArr) {
+            AddressConfigTable table = new AddressConfigTable(numAddressesLog);
+            // initialize the table with config packets
+            double a = Math.pow(Math.pow(2, numAddressesLog), 3. / 2);
+            Packet pkt;
+            for (int i = 0; i < a; i++) {
+                pkt = gen.getConfigPacket();
+                table.insert(pkt.config.address, pkt.config.addressBegin,
+                        pkt.config.addressEnd, pkt.config.acceptingRange, pkt.config.personaNonGrata);
             }
-        } catch (InterruptedException e) {
-            System.out.println("broke in worker join");
-        }
+            System.out.println("Finished the initial config");
+            // initialize queues for workers
+            WaitFreeQueue<Packet>[] queues = new WaitFreeQueue[numWorkers];
+            for (int i = 0; i < queues.length; i++) {
+                // we can have 256 packets in the flight at once
+                // split them evenly across all workers
+                queues[i] = new WaitFreeQueue<>((256 - numWorkers) / numWorkers);
+            }
 
-        timer.stopTimer();
-        final long totalCount = dispatchData.totalPackets;
-        // report the total number of packets processed and total time
-        System.out.println("total time: " + timer.getElapsedTime());
-        System.out.println("total count: " + totalCount);
-        System.out.println("Packets per ms: " + (totalCount / timer.getElapsedTime()));
+            // allocate and initialize locks and any signals used to marshal threads (eg. done signals)
+            PaddedPrimitiveNonVolatile<Boolean> done = new PaddedPrimitiveNonVolatile<>(false);
+            //
+            // allocate and inialize Dispatcher and Worker threads
+            Dispatcher dispatchData = new Dispatcher(done, gen, numWorkers, queues);
+            Thread dispatchThread = new Thread(dispatchData);
+
+            Thread workerThreads[] = new Thread[queues.length];
+            for (int i = 0; i < workerThreads.length; i++) {
+                PacketWorker workerData = new PacketWorker(done, i, queues, table);
+                workerThreads[i] = new Thread(workerData);
+            }
+
+            // call .start() on your Workers
+            for (Thread workerThread : workerThreads)
+                workerThread.start();
+
+            StopWatch timer = new StopWatch();
+            // start the timer
+            timer.startTimer();
+            // call .start() on your Dispatcher
+            dispatchThread.start();
+
+            try {
+                Thread.sleep(numMilliseconds);
+            } catch (InterruptedException ignore) {}
+
+            // assert signals to stop Dispatcher
+            // call .join() on Dispatcher
+            done.value = true;
+            try {
+                dispatchThread.join();
+            } catch (InterruptedException e) {
+                System.out.println("broke in dispatcher join");
+            }
+
+            // assert signals to stop Workers - they are responsible for leaving
+            // the queues empty
+            //
+            // call .join() for each Worker
+            //
+            try {
+                for (Thread workerThread : workerThreads) {
+                    workerThread.join();
+                }
+            } catch (InterruptedException e) {
+                System.out.println("broke in worker join");
+            }
+
+            timer.stopTimer();
+            final long totalCount = dispatchData.totalPackets;
+            // report the total number of packets processed and total time
+            System.out.println("Num workers: " + numWorkers);
+            System.out.println("Packets per ms: " + (totalCount / timer.getElapsedTime()));
+        }
     }
 }
 
