@@ -107,6 +107,7 @@ class PacketGeneratorApp {
         );
         final int[] numWorkersArr = {1, 2, 4, 8};
         for (int numWorkers : numWorkersArr) {
+            System.gc();
             AddressConfigTable table = new AddressConfigTable(numAddressesLog);
             // initialize the table with config packets
             double a = Math.pow(Math.pow(2, numAddressesLog), 3. / 2);
