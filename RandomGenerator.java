@@ -1,6 +1,5 @@
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
-import java.lang.Object;
 import java.lang.Math;
 
 // test app to demonstrate how work is distributed between uniform and 
