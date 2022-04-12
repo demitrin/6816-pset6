@@ -1,4 +1,3 @@
-import java.util.concurrent.locks.*;
 
 public class AddressConfigTable {
     private final ReadWriteLock[] locks;
